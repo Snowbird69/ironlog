@@ -1,0 +1,723 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="IronLog">
+<meta name="theme-color" content="#161514">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-180.png">
+<title>IronLog</title>
+<style>
+:root{
+  --bg:#161514; --surface:#1f1d1a; --raise:#282521; --line:#35312b;
+  --ink:#ede8dd; --dim:#8f887a; --faint:#5c574d;
+  --gold:#e4b23a; --gold-ink:#1a1508;
+  --ok:#7fb069; --danger:#c4574a;
+  --mono:ui-monospace,"SF Mono",SFMono-Regular,Menlo,monospace;
+  --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html{touch-action:manipulation}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);
+  font-size:16px;line-height:1.45;
+  padding-bottom:calc(64px + env(safe-area-inset-bottom));}
+#app{max-width:560px;margin:0 auto;padding:calc(12px + env(safe-area-inset-top)) 14px 24px}
+
+h1,h2,h3{margin:0;font-weight:800;letter-spacing:-.02em}
+.eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim)}
+.num{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.dim{color:var(--dim)} .small{font-size:13px}
+
+.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px;margin:12px 0}
+.rowflex{display:flex;align-items:center;gap:10px}
+.spread{display:flex;align-items:center;justify-content:space-between;gap:10px}
+
+button{font:inherit;color:inherit;background:var(--raise);border:1px solid var(--line);
+  border-radius:10px;padding:10px 14px;cursor:pointer}
+button:active{transform:translateY(1px)}
+button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{
+  outline:2px solid var(--gold);outline-offset:2px}
+.btn-primary{background:var(--gold);color:var(--gold-ink);border-color:var(--gold);font-weight:700}
+.btn-ghost{background:transparent;border-color:transparent;color:var(--dim);padding:8px 10px}
+.btn-danger{color:var(--danger);border-color:var(--danger);background:transparent}
+.btn-wide{width:100%;padding:14px;font-size:17px;border-radius:12px}
+
+input,select,textarea{font:inherit;color:var(--ink);background:var(--bg);
+  border:1px solid var(--line);border-radius:10px;padding:10px 12px;font-size:16px}
+input[type=number]{font-family:var(--mono);text-align:center;-moz-appearance:textfield}
+input::-webkit-outer-spin-button,input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+textarea{width:100%;min-height:64px;resize:vertical}
+label.fld{display:block;margin:10px 0}
+label.fld>span{display:block;font-size:12px;color:var(--dim);margin-bottom:4px;
+  font-family:var(--mono);text-transform:uppercase;letter-spacing:.1em}
+
+/* set rows */
+.setrow{display:grid;grid-template-columns:26px 1fr 1fr 44px;gap:8px;align-items:center;margin:8px 0}
+.setrow .sn{font-family:var(--mono);color:var(--faint);font-size:13px;text-align:center}
+.stepper{display:grid;grid-template-columns:36px 1fr 36px;gap:0;border:1px solid var(--line);
+  border-radius:10px;overflow:hidden;background:var(--bg)}
+.stepper button{border:0;border-radius:0;background:var(--raise);padding:10px 0;font-size:18px;line-height:1;font-family:var(--mono)}
+.stepper input{border:0;border-radius:0;background:transparent;padding:10px 2px;width:100%;min-width:0}
+.chk{width:44px;height:44px;border-radius:10px;border:1px solid var(--line);background:var(--bg);
+  font-size:18px;color:var(--faint);display:flex;align-items:center;justify-content:center}
+.chk.done{background:var(--ok);border-color:var(--ok);color:#10200f;font-weight:800}
+.collabels{display:grid;grid-template-columns:26px 1fr 1fr 44px;gap:8px;
+  font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--faint);margin-top:6px}
+.collabels span:nth-child(2),.collabels span:nth-child(3){text-align:center}
+
+/* the signature: progression chip */
+.chip{display:inline-flex;align-items:center;gap:4px;font-family:var(--mono);font-size:11px;
+  padding:3px 8px;border-radius:999px;letter-spacing:.04em;vertical-align:2px}
+.chip-up{background:var(--gold);color:var(--gold-ink);font-weight:700}
+.chip-top{border:1px solid var(--gold);color:var(--gold)}
+.chip-new{border:1px solid var(--line);color:var(--dim)}
+
+/* today hero */
+.hero{padding:22px 16px;border:1px solid var(--line);border-radius:16px;margin:12px 0;
+  background:linear-gradient(180deg,var(--surface),var(--bg))}
+.hero h1{font-size:32px;line-height:1.05;text-transform:uppercase;letter-spacing:-.01em}
+.hero .why{margin:10px 0 16px;color:var(--dim);font-size:14px}
+
+/* tabs */
+nav{position:fixed;left:0;right:0;bottom:0;background:rgba(22,21,20,.92);
+  -webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);
+  border-top:1px solid var(--line);display:flex;
+  padding-bottom:env(safe-area-inset-bottom);z-index:10}
+nav button{flex:1;background:none;border:0;border-radius:0;padding:10px 0 8px;color:var(--faint);
+  font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase}
+nav button.on{color:var(--gold)}
+nav button .ic{display:block;font-size:18px;margin-bottom:2px}
+
+.exname{font-weight:700;font-size:17px}
+.exmeta{font-family:var(--mono);font-size:11px;color:var(--faint);letter-spacing:.06em}
+.hist-item{border-bottom:1px solid var(--line);padding:10px 0}
+.hist-item:last-child{border-bottom:0}
+.divider{height:1px;background:var(--line);margin:12px 0}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(76px + env(safe-area-inset-bottom));
+  background:var(--gold);color:var(--gold-ink);font-weight:700;padding:10px 16px;border-radius:999px;
+  z-index:20;font-size:14px;opacity:0;transition:opacity .2s}
+.toast.show{opacity:1}
+.empty{color:var(--faint);text-align:center;padding:28px 10px;font-size:14px}
+details summary{cursor:pointer;list-style:none}
+details summary::-webkit-details-marker{display:none}
+@media (prefers-reduced-motion: reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<nav id="tabs"></nav>
+<div class="toast" id="toast" role="status"></div>
+
+<script>
+/* ============================================================
+   IronLog — offline-first training log
+   Data lives in localStorage on this device. Export regularly.
+   ============================================================ */
+"use strict";
+
+const LS_KEY = "ironlog.v1";
+const LS_PREIMPORT = "ironlog.backup.preimport";
+
+/* ---------- utilities ---------- */
+const $ = sel => document.querySelector(sel);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const uid = () => (crypto.randomUUID ? crypto.randomUUID() : "id-" + Date.now() + "-" + Math.random().toString(16).slice(2));
+function todayStr(){
+  const d = new Date();
+  return d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,"0") + "-" + String(d.getDate()).padStart(2,"0");
+}
+function fmtDate(iso){
+  const [y,m,d] = iso.split("-").map(Number);
+  const dt = new Date(y, m-1, d);
+  return dt.toLocaleDateString(undefined, {weekday:"short", month:"short", day:"numeric"});
+}
+function daysAgo(iso){
+  const [y,m,d] = iso.split("-").map(Number);
+  const then = new Date(y, m-1, d);
+  const now = new Date(); now.setHours(0,0,0,0);
+  const diff = Math.round((now - then) / 86400000);
+  return diff <= 0 ? "today" : diff === 1 ? "yesterday" : diff + " days ago";
+}
+let toastTimer = null;
+function toast(msg){
+  const t = $("#toast"); t.textContent = msg; t.classList.add("show");
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove("show"), 1800);
+}
+
+/* ---------- seed data ---------- */
+function seedState(){
+  const ex = {};
+  const mk = (name, type, muscles, sets, repMin, repMax, increment) => {
+    const id = uid();
+    ex[id] = {id, name, type, muscles, sets, repMin, repMax, increment};
+    return id;
+  };
+  const bench    = mk("Barbell Bench Press", "barbell",  "chest, triceps", 3, 8, 12, 5);
+  const incline  = mk("Incline DB Press",    "dumbbell", "chest, shoulders", 3, 8, 12, 5);
+  const dips     = mk("Dips",                "bodyweight","chest, triceps", 3, 6, 12, 0);
+  const pushdown = mk("Triceps Pushdown",    "machine",  "triceps", 3, 10, 15, 5);
+  const pullups  = mk("Pull-Ups",            "bodyweight","back, biceps", 3, 5, 10, 0);
+  const row      = mk("One-Arm DB Row",      "dumbbell", "back", 3, 8, 12, 5);
+  const pulldown = mk("Lat Pulldown",        "machine",  "back, biceps", 3, 8, 12, 5);
+  const curl     = mk("DB Curl",             "dumbbell", "biceps", 3, 8, 12, 5);
+  const tread    = mk("Weighted Vest Treadmill", "cardio", "conditioning", 0, 0, 0, 0);
+
+  const tCT = {id: uid(), name: "Chest / Triceps", exerciseIds: [bench, incline, dips, pushdown]};
+  const tBB = {id: uid(), name: "Back / Biceps",   exerciseIds: [pullups, row, pulldown, curl]};
+
+  return {
+    version: 1,
+    settings: {units: "lb"},
+    exercises: ex,
+    templates: [tCT, tBB],
+    rotation: [tCT.id, tBB.id],
+    cardioIds: [tread],
+    sessions: [],   // newest first
+    active: null,
+    tab: "today"
+  };
+}
+
+/* ---------- state load/save ---------- */
+let S;
+function load(){
+  try{
+    const raw = localStorage.getItem(LS_KEY);
+    if(!raw){ S = seedState(); save(); return; }
+    S = JSON.parse(raw);
+    if(!S || S.version !== 1) throw new Error("bad schema");
+  }catch(e){
+    console.error("State load failed:", e);
+    S = seedState();
+  }
+}
+function save(){
+  try{ localStorage.setItem(LS_KEY, JSON.stringify(S)); }
+  catch(e){ toast("Save failed — storage full?"); console.error(e); }
+}
+
+/* ============================================================
+   LOGIC-START  (pure functions — also exercised by tests)
+   ============================================================ */
+
+/** Most recent completed performance of an exercise, or null. */
+function lastPerformance(exId, sessions){
+  for(const s of sessions){
+    const e = (s.entries || []).find(en => en.exerciseId === exId);
+    if(!e) continue;
+    if(e.cardio) return {cardio: e.cardio, date: s.date};
+    const done = (e.sets || []).filter(st => st.done);
+    if(done.length) return {sets: done, date: s.date};
+  }
+  return null;
+}
+
+/**
+ * Double progression: when every target set hit the top of the rep
+ * range last time, add the increment and reset reps to the bottom.
+ * Otherwise repeat last weight and mirror last reps as the target.
+ */
+function prefillStrength(ex, sessions){
+  const last = lastPerformance(ex.id, sessions);
+  if(!last || !last.sets){
+    return {kind:"first", sets: Array.from({length: ex.sets}, () => ({w: 0, r: ex.repMin, done:false}))};
+  }
+  const topW = Math.max(...last.sets.map(s => Number(s.w) || 0));
+  const hitTop = last.sets.length >= ex.sets && last.sets.every(s => (Number(s.r)||0) >= ex.repMax);
+  if(hitTop && ex.increment > 0){
+    return {kind:"progressed", bump: ex.increment,
+      sets: Array.from({length: ex.sets}, () => ({w: topW + ex.increment, r: ex.repMin, done:false}))};
+  }
+  const sets = [];
+  for(let i = 0; i < Math.max(ex.sets, last.sets.length); i++){
+    const prev = last.sets[i];
+    sets.push({w: prev ? Number(prev.w)||0 : topW, r: prev ? Number(prev.r)||ex.repMin : ex.repMin, done:false});
+  }
+  return {kind: hitTop ? "attop" : "repeat", sets};
+}
+
+/** Copy the last cardio numbers forward. */
+function prefillCardio(ex, sessions){
+  const last = lastPerformance(ex.id, sessions);
+  const c = last && last.cardio ? last.cardio : {};
+  return {vest: c.vest ?? 0, min: c.min ?? 30, dist: c.dist ?? "", avgHr: c.avgHr ?? "", maxHr: c.maxHr ?? "", cal: c.cal ?? ""};
+}
+
+/** Next template in the rotation, based on the last rotation session logged. */
+function suggestNextTemplate(state){
+  const rot = state.rotation.filter(id => state.templates.some(t => t.id === id));
+  if(!rot.length) return state.templates[0] ? state.templates[0].id : null;
+  const lastRot = state.sessions.find(s => rot.includes(s.templateId));
+  if(!lastRot) return rot[0];
+  const i = rot.indexOf(lastRot.templateId);
+  return rot[(i + 1) % rot.length];
+}
+
+/* ============================================================
+   LOGIC-END
+   ============================================================ */
+
+/* ---------- session lifecycle ---------- */
+function startSession(templateId, withCardio){
+  const tpl = S.templates.find(t => t.id === templateId) || null;
+  const entries = [];
+  if(tpl){
+    for(const exId of tpl.exerciseIds){
+      const ex = S.exercises[exId];
+      if(!ex) continue;
+      const pf = prefillStrength(ex, S.sessions);
+      entries.push({exerciseId: exId, kind: pf.kind, bump: pf.bump || 0, sets: pf.sets});
+    }
+  }
+  if(withCardio){
+    for(const cid of S.cardioIds){
+      const ex = S.exercises[cid];
+      if(!ex) continue;
+      entries.push({exerciseId: cid, cardio: prefillCardio(ex, S.sessions)});
+    }
+  }
+  S.active = {id: uid(), date: todayStr(), templateId: tpl ? tpl.id : null, entries, notes: ""};
+  save(); render();
+}
+function finishSession(){
+  const a = S.active;
+  if(!a) return;
+  const kept = [];
+  for(const e of a.entries){
+    if(e.cardio){
+      const c = e.cardio;
+      const any = [c.min, c.dist, c.avgHr, c.maxHr, c.cal].some(v => v !== "" && v !== 0 && v != null);
+      if(any) kept.push({exerciseId: e.exerciseId, cardio: c});
+    }else{
+      const done = (e.sets || []).filter(st => st.done);
+      if(done.length) kept.push({exerciseId: e.exerciseId, sets: e.sets});
+    }
+  }
+  if(!kept.length){ toast("Nothing logged yet"); return; }
+  S.sessions.unshift({id: a.id, date: a.date, templateId: a.templateId, entries: kept, notes: a.notes});
+  S.active = null;
+  save(); render();
+  toast("Session saved");
+}
+function discardSession(){
+  if(!confirm("Discard this session? Nothing will be saved.")) return;
+  S.active = null; save(); render();
+}
+
+/* ---------- rendering ---------- */
+const TABS = [
+  {id:"today",   label:"Today",   ic:"▶"},
+  {id:"history", label:"History", ic:"≡"},
+  {id:"plan",    label:"Plan",    ic:"⊞"},
+  {id:"data",    label:"Data",    ic:"⇅"}
+];
+function render(){
+  renderTabs();
+  const app = $("#app");
+  if(S.tab === "today")   app.innerHTML = S.active ? viewActive() : viewToday();
+  if(S.tab === "history") app.innerHTML = viewHistory();
+  if(S.tab === "plan")    app.innerHTML = viewPlan();
+  if(S.tab === "data")    app.innerHTML = viewData();
+}
+function renderTabs(){
+  $("#tabs").innerHTML = TABS.map(t =>
+    `<button data-action="tab" data-tab="${t.id}" class="${S.tab===t.id?"on":""}" aria-label="${t.label}">
+      <span class="ic">${t.ic}</span>${t.label}</button>`).join("");
+}
+
+/* ----- Today (no active session) ----- */
+function viewToday(){
+  const nextId = suggestNextTemplate(S);
+  const tpl = S.templates.find(t => t.id === nextId);
+  const lastRot = S.sessions.find(s => S.rotation.includes(s.templateId));
+  const why = lastRot
+    ? `Last: ${esc(tplName(lastRot.templateId))} · ${daysAgo(lastRot.date)}`
+    : "First session — rotation starts here.";
+  const others = S.templates.filter(t => !tpl || t.id !== tpl.id);
+  return `
+    <p class="eyebrow">Up next</p>
+    <div class="hero">
+      <h1>${tpl ? esc(tpl.name) : "No day templates"}</h1>
+      <p class="why">${why}</p>
+      ${tpl ? previewList(tpl) : ""}
+      <div style="margin-top:16px;display:grid;gap:10px">
+        <button class="btn-primary btn-wide" data-action="start" data-tpl="${tpl?tpl.id:""}" data-cardio="0">Start ${tpl?esc(tpl.name):""}</button>
+        <button class="btn-wide" data-action="start" data-tpl="${tpl?tpl.id:""}" data-cardio="1">Start + vest treadmill</button>
+      </div>
+    </div>
+    <div class="card">
+      <p class="eyebrow" style="margin-bottom:8px">Instead</p>
+      <div style="display:grid;gap:8px">
+        ${others.map(t => `<button data-action="start" data-tpl="${t.id}" data-cardio="0">${esc(t.name)}</button>`).join("")}
+        <button data-action="start" data-tpl="" data-cardio="1">Cardio only</button>
+      </div>
+    </div>`;
+}
+function tplName(id){ const t = S.templates.find(t => t.id === id); return t ? t.name : "Custom"; }
+function previewList(tpl){
+  return `<div>` + tpl.exerciseIds.map(id => {
+    const ex = S.exercises[id]; if(!ex) return "";
+    const pf = prefillStrength(ex, S.sessions);
+    let chip = "";
+    if(pf.kind === "progressed") chip = ` <span class="chip chip-up">▲ +${pf.bump} ${S.settings.units}</span>`;
+    if(pf.kind === "attop")      chip = ` <span class="chip chip-top">at top — add reps/vest</span>`;
+    if(pf.kind === "first")      chip = ` <span class="chip chip-new">first time</span>`;
+    const w = pf.sets[0] ? pf.sets[0].w : 0;
+    return `<div class="spread" style="padding:5px 0">
+      <span>${esc(ex.name)}${chip}</span>
+      <span class="num dim">${ex.type==="bodyweight" && !w ? "BW" : w + " " + S.settings.units}</span>
+    </div>`;
+  }).join("") + `</div>`;
+}
+
+/* ----- Active session ----- */
+function viewActive(){
+  const a = S.active;
+  return `
+    <div class="spread">
+      <div>
+        <p class="eyebrow">${esc(fmtDate(a.date))}</p>
+        <h2>${esc(a.templateId ? tplName(a.templateId) : "Cardio")}</h2>
+      </div>
+      <button class="btn-ghost" data-action="discard">Discard</button>
+    </div>
+    ${a.entries.map((e,i) => e.cardio ? cardioCard(e,i) : exerciseCard(e,i)).join("")}
+    <div class="card">
+      <div style="display:grid;gap:8px">
+        <button data-action="add-ex-menu">+ Add exercise</button>
+        ${a.entries.some(e=>e.cardio) ? "" : `<button data-action="add-cardio">+ Add vest treadmill</button>`}
+      </div>
+    </div>
+    <div class="card">
+      <label class="fld"><span>Notes</span>
+        <textarea data-bind="notes" placeholder="How it went, tweaks for next time…">${esc(a.notes)}</textarea>
+      </label>
+    </div>
+    <button class="btn-primary btn-wide" data-action="finish">Finish &amp; save</button>`;
+}
+function exerciseCard(e, i){
+  const ex = S.exercises[e.exerciseId];
+  if(!ex) return "";
+  let chip = "";
+  if(e.kind === "progressed") chip = ` <span class="chip chip-up">▲ +${e.bump} ${S.settings.units}</span>`;
+  if(e.kind === "attop")      chip = ` <span class="chip chip-top">at top — add reps/vest</span>`;
+  if(e.kind === "first")      chip = ` <span class="chip chip-new">first time — set weight</span>`;
+  return `<div class="card">
+    <div class="spread">
+      <div>
+        <div class="exname">${esc(ex.name)}${chip}</div>
+        <div class="exmeta">${esc(ex.muscles)} · target ${ex.sets}×${ex.repMin}–${ex.repMax}</div>
+      </div>
+      <button class="btn-ghost" data-action="remove-entry" data-i="${i}" aria-label="Remove ${esc(ex.name)}">✕</button>
+    </div>
+    <div class="collabels"><span></span><span>${ex.type==="bodyweight"?"+ "+S.settings.units:S.settings.units}</span><span>reps</span><span></span></div>
+    ${e.sets.map((st,j) => setRow(i, j, st, ex)).join("")}
+    <div class="rowflex" style="margin-top:8px">
+      <button class="btn-ghost" data-action="add-set" data-i="${i}">+ set</button>
+      <button class="btn-ghost" data-action="rm-set" data-i="${i}">− set</button>
+    </div>
+  </div>`;
+}
+function setRow(i, j, st, ex){
+  const step = ex.increment > 0 ? ex.increment : 5;
+  return `<div class="setrow">
+    <span class="sn">${j+1}</span>
+    <div class="stepper">
+      <button data-action="stepw" data-i="${i}" data-j="${j}" data-d="${-step}" aria-label="weight down">−</button>
+      <input type="number" inputmode="decimal" step="any" value="${st.w}" data-bind="w" data-i="${i}" data-j="${j}" aria-label="weight">
+      <button data-action="stepw" data-i="${i}" data-j="${j}" data-d="${step}" aria-label="weight up">+</button>
+    </div>
+    <div class="stepper">
+      <button data-action="stepr" data-i="${i}" data-j="${j}" data-d="-1" aria-label="reps down">−</button>
+      <input type="number" inputmode="numeric" step="1" value="${st.r}" data-bind="r" data-i="${i}" data-j="${j}" aria-label="reps">
+      <button data-action="stepr" data-i="${i}" data-j="${j}" data-d="1" aria-label="reps up">+</button>
+    </div>
+    <button class="chk ${st.done?"done":""}" data-action="toggle-done" data-i="${i}" data-j="${j}" aria-label="set done">✓</button>
+  </div>`;
+}
+function cardioCard(e, i){
+  const ex = S.exercises[e.exerciseId];
+  const c = e.cardio;
+  const f = (key,label,mode) => `<label class="fld"><span>${label}</span>
+    <input type="number" inputmode="${mode||"numeric"}" step="any" value="${c[key]}" data-bind="cardio" data-key="${key}" data-i="${i}"></label>`;
+  return `<div class="card">
+    <div class="spread">
+      <div class="exname">${esc(ex ? ex.name : "Cardio")}</div>
+      <button class="btn-ghost" data-action="remove-entry" data-i="${i}" aria-label="Remove cardio">✕</button>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:0 12px">
+      ${f("vest","Vest ("+S.settings.units+")")}
+      ${f("min","Minutes")}
+      ${f("dist","Distance (mi)","decimal")}
+      ${f("cal","Active cal")}
+      ${f("avgHr","Avg HR")}
+      ${f("maxHr","Max HR")}
+    </div>
+    <p class="small dim" style="margin:6px 0 0">HR / calories: read off the watch after the workout.</p>
+  </div>`;
+}
+
+/* ----- History ----- */
+function viewHistory(){
+  if(!S.sessions.length) return `<p class="eyebrow">History</p><div class="empty">No sessions yet. Your log builds here.</div>`;
+  return `<p class="eyebrow">History</p>` + S.sessions.map(s => `
+    <div class="card">
+      <details>
+        <summary class="spread">
+          <div>
+            <strong>${esc(tplName(s.templateId))}</strong>
+            <div class="small dim">${esc(fmtDate(s.date))} · ${daysAgo(s.date)}</div>
+          </div>
+          <span class="num dim">${s.entries.length} items</span>
+        </summary>
+        <div class="divider"></div>
+        ${s.entries.map(e => histEntry(e)).join("")}
+        ${s.notes ? `<p class="small dim" style="white-space:pre-wrap">${esc(s.notes)}</p>` : ""}
+        <button class="btn-danger" style="margin-top:8px" data-action="del-session" data-id="${s.id}">Delete session</button>
+      </details>
+    </div>`).join("");
+}
+function histEntry(e){
+  const ex = S.exercises[e.exerciseId];
+  const name = ex ? ex.name : "(deleted exercise)";
+  if(e.cardio){
+    const c = e.cardio;
+    const bits = [];
+    if(c.vest) bits.push(c.vest + " " + S.settings.units + " vest");
+    if(c.min) bits.push(c.min + " min");
+    if(c.dist) bits.push(c.dist + " mi");
+    if(c.avgHr) bits.push("avg " + c.avgHr + " bpm");
+    if(c.maxHr) bits.push("max " + c.maxHr);
+    if(c.cal) bits.push(c.cal + " cal");
+    return `<div class="hist-item"><strong>${esc(name)}</strong><div class="num small dim">${bits.join(" · ") || "—"}</div></div>`;
+  }
+  const done = (e.sets||[]).filter(st => st.done);
+  const byW = done.map(st => `${st.w||"BW"}×${st.r}`).join(", ");
+  return `<div class="hist-item"><strong>${esc(name)}</strong><div class="num small dim">${byW || "—"}</div></div>`;
+}
+
+/* ----- Plan (templates + exercise library) ----- */
+function viewPlan(){
+  return `
+    <p class="eyebrow">Rotation</p>
+    <div class="card">
+      ${S.rotation.map((id,idx) => `<div class="spread" style="padding:6px 0">
+        <span><span class="num dim">${idx+1}.</span> ${esc(tplName(id))}</span>
+        <span class="rowflex">
+          <button class="btn-ghost" data-action="rot-up" data-idx="${idx}" aria-label="move up">↑</button>
+        </span>
+      </div>`).join("")}
+      <p class="small dim" style="margin:6px 0 0">Days alternate in this order. Finishing one pre-loads the next.</p>
+    </div>
+
+    <p class="eyebrow" style="margin-top:18px">Day templates</p>
+    ${S.templates.map(t => `
+      <div class="card">
+        <details>
+          <summary class="spread"><strong>${esc(t.name)}</strong><span class="dim small">${t.exerciseIds.length} exercises ▾</span></summary>
+          <div class="divider"></div>
+          ${t.exerciseIds.map((id,idx) => {
+            const ex = S.exercises[id];
+            return `<div class="spread" style="padding:5px 0">
+              <span>${ex?esc(ex.name):"(missing)"}</span>
+              <span class="rowflex">
+                <button class="btn-ghost" data-action="tpl-ex-up" data-tpl="${t.id}" data-idx="${idx}" aria-label="move up">↑</button>
+                <button class="btn-ghost" data-action="tpl-ex-rm" data-tpl="${t.id}" data-idx="${idx}" aria-label="remove">✕</button>
+              </span>
+            </div>`;
+          }).join("")}
+          <div class="rowflex" style="margin-top:8px;flex-wrap:wrap">
+            <select data-role="tpl-add-select" data-tpl="${t.id}">
+              <option value="">Add exercise…</option>
+              ${Object.values(S.exercises).filter(e=>e.type!=="cardio" && !t.exerciseIds.includes(e.id))
+                .map(e=>`<option value="${e.id}">${esc(e.name)}</option>`).join("")}
+            </select>
+            <button data-action="tpl-ex-add" data-tpl="${t.id}">Add</button>
+          </div>
+        </details>
+      </div>`).join("")}
+    <button data-action="tpl-new" class="btn-wide">+ New day template</button>
+
+    <p class="eyebrow" style="margin-top:18px">Exercise library</p>
+    ${Object.values(S.exercises).map(ex => `
+      <div class="card">
+        <details ${editingExId===ex.id?"open":""}>
+          <summary class="spread">
+            <span><strong>${esc(ex.name)}</strong> <span class="exmeta">${esc(ex.type)}</span></span>
+            <span class="num small dim">${ex.type==="cardio"?"":ex.sets+"×"+ex.repMin+"–"+ex.repMax+(ex.increment?" · +"+ex.increment:"")}</span>
+          </summary>
+          <div class="divider"></div>
+          ${exerciseForm(ex)}
+        </details>
+      </div>`).join("")}
+    <button data-action="ex-new" class="btn-wide">+ New exercise</button>`;
+}
+let editingExId = null;
+function exerciseForm(ex){
+  const num = (key,label) => `<label class="fld"><span>${label}</span>
+    <input type="number" inputmode="decimal" step="any" value="${ex[key]}" data-exfield="${key}" data-ex="${ex.id}"></label>`;
+  return `
+    <label class="fld"><span>Name</span><input value="${esc(ex.name)}" data-exfield="name" data-ex="${ex.id}" style="width:100%"></label>
+    <label class="fld"><span>Type</span>
+      <select data-exfield="type" data-ex="${ex.id}">
+        ${["barbell","dumbbell","machine","bodyweight","cardio"].map(t=>`<option ${ex.type===t?"selected":""}>${t}</option>`).join("")}
+      </select></label>
+    <label class="fld"><span>Muscles</span><input value="${esc(ex.muscles)}" data-exfield="muscles" data-ex="${ex.id}" style="width:100%"></label>
+    ${ex.type==="cardio" ? "" : `
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:0 12px">
+        ${num("sets","Target sets")}${num("increment","Increment ("+S.settings.units+")")}
+        ${num("repMin","Rep min")}${num("repMax","Rep max")}
+      </div>
+      <p class="small dim">Hit rep max on every set → next session pre-fills +increment. Increment 0 (bodyweight) just flags “at top”.</p>`}
+    <button class="btn-danger" data-action="ex-del" data-ex="${ex.id}">Delete exercise</button>`;
+}
+
+/* ----- Data (export / import / progress) ----- */
+function viewData(){
+  const strengthIds = Object.values(S.exercises).filter(e=>e.type!=="cardio").map(e=>e.id);
+  const rows = strengthIds.map(id => {
+    const ex = S.exercises[id];
+    let best = null;
+    for(const s of S.sessions) for(const e of (s.entries||[])){
+      if(e.exerciseId!==id || !e.sets) continue;
+      for(const st of e.sets){ if(st.done && (!best || (st.w||0) > best.w || ((st.w||0)===best.w && st.r>best.r))) best = {w:st.w||0, r:st.r, date:s.date}; }
+    }
+    return best ? `<div class="spread hist-item"><span>${esc(ex.name)}</span><span class="num dim">${best.w||"BW"} × ${best.r} <span class="small">(${esc(fmtDate(best.date))})</span></span></div>` : "";
+  }).join("");
+  return `
+    <p class="eyebrow">Bests</p>
+    <div class="card">${rows || `<div class="empty">Log sessions to see PRs.</div>`}</div>
+
+    <p class="eyebrow" style="margin-top:18px">Backup</p>
+    <div class="card">
+      <p class="small dim" style="margin-top:0">Everything lives in this phone's browser storage. <strong>Deleting the home-screen app deletes the data</strong> — export regularly.</p>
+      <div style="display:grid;gap:8px">
+        <button class="btn-primary" data-action="export-copy">Copy backup to clipboard</button>
+        <button data-action="export-share">Share backup file…</button>
+      </div>
+    </div>
+    <div class="card">
+      <p class="eyebrow" style="margin-bottom:8px">Restore</p>
+      <textarea id="importbox" placeholder="Paste a backup here"></textarea>
+      <button style="margin-top:8px" data-action="import">Import (replaces current data)</button>
+      <p class="small dim">Current data is auto-stashed to a recovery slot before import (<span class="num">${LS_PREIMPORT}</span>).</p>
+      ${localStorage.getItem(LS_PREIMPORT) ? `<button class="btn-ghost" data-action="restore-preimport">Undo last import</button>` : ""}
+    </div>
+    <p class="small dim" style="text-align:center">IronLog · local-only · v1</p>`;
+}
+function doExport(){ return JSON.stringify(S, null, 0); }
+async function exportCopy(){
+  try{ await navigator.clipboard.writeText(doExport()); toast("Backup copied"); }
+  catch(e){ prompt("Copy this:", doExport()); }
+}
+async function exportShare(){
+  const data = doExport();
+  const file = new File([data], "ironlog-backup-" + todayStr() + ".json", {type:"application/json"});
+  if(navigator.canShare && navigator.canShare({files:[file]})){
+    try{ await navigator.share({files:[file], title:"IronLog backup"}); return; }catch(e){/* cancelled */}
+  }else{
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(new Blob([data],{type:"application/json"}));
+    a.download = file.name; a.click(); URL.revokeObjectURL(a.href);
+  }
+}
+function doImport(){
+  const raw = $("#importbox").value.trim();
+  if(!raw){ toast("Paste a backup first"); return; }
+  let obj;
+  try{ obj = JSON.parse(raw); }catch(e){ toast("Not valid JSON"); return; }
+  if(!obj || obj.version !== 1 || !obj.exercises || !Array.isArray(obj.sessions)){ toast("Doesn't look like an IronLog backup"); return; }
+  localStorage.setItem(LS_PREIMPORT, JSON.stringify(S));   // move-aside before replace
+  S = obj; S.tab = "data"; S.active = S.active || null;
+  save(); render(); toast("Imported " + obj.sessions.length + " sessions");
+}
+function restorePreimport(){
+  const raw = localStorage.getItem(LS_PREIMPORT);
+  if(!raw){ toast("No recovery slot"); return; }
+  try{ S = JSON.parse(raw); save(); render(); toast("Restored pre-import data"); }
+  catch(e){ toast("Recovery slot corrupted"); }
+}
+
+/* ---------- events ---------- */
+document.addEventListener("click", ev => {
+  const b = ev.target.closest("[data-action]");
+  if(!b) return;
+  const a = b.dataset.action;
+  const i = Number(b.dataset.i), j = Number(b.dataset.j);
+
+  if(a === "tab"){ S.tab = b.dataset.tab; save(); render(); }
+  else if(a === "start"){ startSession(b.dataset.tpl || null, b.dataset.cardio === "1"); }
+  else if(a === "finish"){ finishSession(); }
+  else if(a === "discard"){ discardSession(); }
+  else if(a === "toggle-done"){ const st = S.active.entries[i].sets[j]; st.done = !st.done; save(); render(); }
+  else if(a === "stepw"){ const st = S.active.entries[i].sets[j]; st.w = Math.max(0, round2((Number(st.w)||0) + Number(b.dataset.d))); save(); render(); }
+  else if(a === "stepr"){ const st = S.active.entries[i].sets[j]; st.r = Math.max(0, (Number(st.r)||0) + Number(b.dataset.d)); save(); render(); }
+  else if(a === "add-set"){ const e = S.active.entries[i]; const lastSet = e.sets[e.sets.length-1]; e.sets.push({w: lastSet?lastSet.w:0, r: lastSet?lastSet.r:0, done:false}); save(); render(); }
+  else if(a === "rm-set"){ const e = S.active.entries[i]; if(e.sets.length>1) e.sets.pop(); save(); render(); }
+  else if(a === "remove-entry"){ S.active.entries.splice(i,1); save(); render(); }
+  else if(a === "add-cardio"){ for(const cid of S.cardioIds){ if(S.exercises[cid]) S.active.entries.push({exerciseId: cid, cardio: prefillCardio(S.exercises[cid], S.sessions)}); } save(); render(); }
+  else if(a === "add-ex-menu"){ addExerciseMenu(); }
+  else if(a === "del-session"){ if(confirm("Delete this session from history? Export a backup first if unsure.")){ S.sessions = S.sessions.filter(s => s.id !== b.dataset.id); save(); render(); } }
+  else if(a === "rot-up"){ const idx = Number(b.dataset.idx); if(idx>0){ [S.rotation[idx-1],S.rotation[idx]]=[S.rotation[idx],S.rotation[idx-1]]; save(); render(); } }
+  else if(a === "tpl-ex-up"){ const t = S.templates.find(t=>t.id===b.dataset.tpl); const idx=Number(b.dataset.idx); if(t&&idx>0){ [t.exerciseIds[idx-1],t.exerciseIds[idx]]=[t.exerciseIds[idx],t.exerciseIds[idx-1]]; save(); render(); } }
+  else if(a === "tpl-ex-rm"){ const t = S.templates.find(t=>t.id===b.dataset.tpl); if(t){ t.exerciseIds.splice(Number(b.dataset.idx),1); save(); render(); } }
+  else if(a === "tpl-ex-add"){ const t = S.templates.find(t=>t.id===b.dataset.tpl); const sel = document.querySelector(`select[data-role="tpl-add-select"][data-tpl="${t.id}"]`); if(t && sel && sel.value){ t.exerciseIds.push(sel.value); save(); render(); } }
+  else if(a === "tpl-new"){ const name = prompt("Day name (e.g. Legs / Core):"); if(name){ const t={id:uid(),name,exerciseIds:[]}; S.templates.push(t); S.rotation.push(t.id); save(); render(); } }
+  else if(a === "ex-new"){ const name = prompt("Exercise name:"); if(name){ const id=uid(); S.exercises[id]={id,name,type:"dumbbell",muscles:"",sets:3,repMin:8,repMax:12,increment:5}; editingExId=id; save(); render(); } }
+  else if(a === "ex-del"){ const id=b.dataset.ex; if(confirm("Delete this exercise? History keeps its logged sets, templates drop it.")){ delete S.exercises[id]; for(const t of S.templates) t.exerciseIds = t.exerciseIds.filter(x=>x!==id); S.cardioIds = S.cardioIds.filter(x=>x!==id); save(); render(); } }
+  else if(a === "export-copy"){ exportCopy(); }
+  else if(a === "export-share"){ exportShare(); }
+  else if(a === "import"){ doImport(); }
+  else if(a === "restore-preimport"){ restorePreimport(); }
+});
+function round2(n){ return Math.round(n*100)/100; }
+function addExerciseMenu(){
+  const pool = Object.values(S.exercises).filter(e => e.type!=="cardio" && !S.active.entries.some(en => en.exerciseId===e.id));
+  if(!pool.length){ toast("Everything's already in — add new ones in Plan"); return; }
+  const names = pool.map((e,idx) => (idx+1) + " " + e.name).join("\n");
+  const pick = prompt("Add which exercise?\n" + names + "\n\nEnter number:");
+  const idx = Number(pick) - 1;
+  if(Number.isInteger(idx) && pool[idx]){
+    const ex = pool[idx];
+    const pf = prefillStrength(ex, S.sessions);
+    S.active.entries.push({exerciseId: ex.id, kind: pf.kind, bump: pf.bump||0, sets: pf.sets});
+    save(); render();
+  }
+}
+/* input bindings (commit on change) */
+document.addEventListener("change", ev => {
+  const el = ev.target;
+  if(el.dataset.bind === "w" || el.dataset.bind === "r"){
+    const st = S.active.entries[Number(el.dataset.i)].sets[Number(el.dataset.j)];
+    st[el.dataset.bind] = Math.max(0, Number(el.value) || 0);
+    save(); render();
+  }else if(el.dataset.bind === "cardio"){
+    const c = S.active.entries[Number(el.dataset.i)].cardio;
+    c[el.dataset.key] = el.value === "" ? "" : Number(el.value);
+    save();
+  }else if(el.dataset.bind === "notes"){
+    S.active.notes = el.value; save();
+  }else if(el.dataset.exfield){
+    const ex = S.exercises[el.dataset.ex];
+    if(!ex) return;
+    const f = el.dataset.exfield;
+    ex[f] = (["sets","repMin","repMax","increment"].includes(f)) ? Math.max(0, Number(el.value)||0) : el.value;
+    editingExId = ex.id;
+    save();
+    if(f === "type") render();
+  }
+});
+
+/* ---------- boot ---------- */
+load();
+render();
+if("serviceWorker" in navigator && (location.protocol === "https:" || location.hostname === "localhost")){
+  navigator.serviceWorker.register("sw.js").catch(e => console.warn("SW registration failed:", e));
+}
+</script>
+</body>
+</html>
